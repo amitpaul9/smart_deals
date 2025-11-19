@@ -31,7 +31,7 @@ async function run() {
 
     const myDb = client.db("smart_db");
     const productsCollection = myDb.collection("products");
-
+    const bidCollection = myDb.collection("bids");
     // -----------------
     // APIs
 
@@ -45,7 +45,7 @@ async function run() {
     // delete data
     app.delete("/products/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
+      const query = { _id: id };
       const result = await productsCollection.deleteOne(query);
       res.send(result);
     });
@@ -54,7 +54,7 @@ async function run() {
     app.patch("/products/:id", async (req, res) => {
       const id = req.params.id;
       const updatedProduct = req.body;
-      const query = { _id: new ObjectId(id) };
+      const query = { _id: id };
       const updated = {
         $set: {
           name: updatedProduct.name,
@@ -72,7 +72,26 @@ async function run() {
 
     // get data
     app.get("/products", async (req, res) => {
-      const cursor = productsCollection.find().sort({ price_min: -1 }).limit(2);
+      const projectFields = { price_min: 1, price_max: 1 };
+
+      // sort, skip, limit and project ⬇️⬇️
+
+      // const cursor = productsCollection
+      //   .find()
+      //   .sort({ price_min: -1 })
+      //   .skip(2)
+      //   .limit(6)
+      //   .project(projectFields);
+
+      console.log(req.query);
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.email = email;
+      }
+
+      const cursor = productsCollection.find(query);
+
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -81,11 +100,52 @@ async function run() {
     app.get("/products/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
+        const query = { _id: id };
         const result = await productsCollection.findOne(query);
         res.send(result);
       } catch (error) {
         console.log("got error of", error);
+      }
+    });
+
+    //bids related api
+    app.get("/bids", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.buyer_email = email;
+      }
+
+      const cursor = bidCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.post("/bids", async (req, res) => {
+      const newBids = req.body;
+      const result = await bidCollection.insertOne(newBids);
+      res.send(result);
+    });
+
+    app.delete("/bids/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: id };
+        const result = await bidCollection.deleteOne(query);
+        res.send(result);
+      } catch (error) {
+        console.log("got error of", error);
+      }
+    });
+
+    app.get("/bids/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: id };
+        const result = await bidCollection.findOne(query);
+        res.send(result);
+      } catch (error) {
+        console.log("caght error", error);
       }
     });
 
